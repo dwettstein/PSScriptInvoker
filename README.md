@@ -9,18 +9,18 @@ For installing the service just download, extract and execute the installer from
 
 [PSScriptInvokerSetup.zip](./PSScriptInvokerSetup.zip?raw=true)
 
-For installing the service with Visual Studio, have a look at the [section Advanced Installation](#Advanced-Installation)
+For installing the service with Visual Studio, have a look at the [section Advanced Installation](#advanced-installation)
 
-After the installation you need to configure the service according to your need and then start it within _Windows Services_ (see [section Logging](#Logging) below for tracking the starting progress).
+After the installation you need to configure the service according to your need and then start it within _Windows Services_ (see [section Logging](#logging) below for tracking the starting progress).
 
 
 # Configuration
 
-The following variables can be set in the service configuration file `PSScriptInvoker.exe.config` within the service installation folder (default `C:\Program Files\David Wettstein\`):
+The following variables can be set in the service configuration file `PSScriptInvoker.exe.config` within the service installation folder (default `C:\Program Files\PSScriptInvoker\`):
 
 Key           | Example                           | Description
 --------------|-----------------------------------|-------------
-baseUrl       | http://127.0.0.1:8888/            | Protocol, IP/hostname and port you want to use for the service (default `http://127.0.0.1:8888/`). For using HTTPS see [section HTTPS](#HTTPS) at the end of this documentation.
+baseUrl       | http://127.0.0.1:8888/            | Protocol, IP/hostname and port you want to use for the service (default `http://127.0.0.1:8888/`). For using HTTPS see [section HTTPS](#https) at the end of this documentation.
 authToken     | meowmeowmeow                      | The token used for the authorization. If empty, no _Authorization Header_ is needed.
 pathToScripts | C:\root\path\of\psscripts         | Root path of the folder where the scripts are (no `\` at the end).
 modulesToLoad | module.foo.bar.A,module.foo.bar.B | Comma-separated list (without whitespaces) of Powershell modules to load when starting the service.
@@ -40,7 +40,7 @@ For convenience, you can also create a shortcut (Right-click => New => Shortcut)
 
 # Example
 
-With the following request, the service will look for the given script (just name, without `.ps1` ending) within the root path of the service (see [section Configuration](#Configuration)).
+With the following request, the service will look for the given script (just name, without `.ps1` ending) within the root path of the service (see [section Configuration](#configuration)).
 
 ```bash
 curl "http://localhost:8888/scriptname?param1=value1&param2=value2"
@@ -56,7 +56,7 @@ curl "http://localhost:8888/subfolders/.../scriptname?param1=value1&param2=value
 
 ## Authorization
 
-If the setting `authToken` is not empty in the service configuration (see [section Configuration](#Configuration)), then you need to set the _Authorization Header_ and send it together with every request as follows:
+If the setting `authToken` is not empty in the service configuration (see [section Configuration](#configuration)), then you need to set the _Authorization Header_ and send it together with every request as follows:
 
 `Authorization: meowmeowmeow`
 
