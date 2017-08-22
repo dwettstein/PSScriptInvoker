@@ -12,6 +12,8 @@ using System.ServiceProcess;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.PowerShell;
+using RabbitMQ.Client;
+using RabbitMQ.Client.Events;
 
 namespace PSScriptInvoker
 {
@@ -25,6 +27,17 @@ namespace PSScriptInvoker
         private string pathToScripts;
         private string[] modulesToLoad;
         private string psExecutionPolicy;
+
+        private string rabbitMqBaseUrl;
+        private string rabbitMqUsername;
+        private string rabbitMqPassword;
+        private string rabbitMqRequestQueueName;
+        private string rabbitMqResponseQueueName;
+
+        private ConnectionFactory rabbitmqFactory;
+        private IConnection rabbitmqConnection;
+        private IModel rabbitmqChannel;
+        private AsyncEventingBasicConsumer rabbitmqConsumer;
 
         private HttpListener server;
         private bool isServerStopped;
@@ -54,6 +67,12 @@ namespace PSScriptInvoker
             string modulesToLoadString = readAppSetting("modulesToLoad");
             modulesToLoad = string.IsNullOrEmpty(modulesToLoadString) ? new string[0] : modulesToLoadString.Split(',');
             psExecutionPolicy = readAppSetting("psExecutionPolicy");
+
+            rabbitMqBaseUrl = readAppSetting("rabbitMqBaseUrl");
+            rabbitMqUsername = readAppSetting("rabbitMqUsername");
+            rabbitMqPassword = readAppSetting("rabbitMqPassword");
+            rabbitMqRequestQueueName = readAppSetting("rabbitMqRequestQueueName");
+            rabbitMqResponseQueueName = readAppSetting("rabbitMqResponseQueueName");
         }
 
         public async Task StartPSScriptInvoker()
@@ -122,6 +141,8 @@ namespace PSScriptInvoker
             server.Prefixes.Add(baseUrl);
             isServerStopped = false;
 
+            initializeRabbitMQ(rabbitMqBaseUrl, rabbitMqRequestQueueName, rabbitMqUsername, rabbitMqPassword);
+
             EventLog.WriteEntry(EVENT_LOG_SOURCE, "The service has been started.", EventLogEntryType.Information);
             return StartServerThreadAsync();
         }
@@ -133,6 +154,54 @@ namespace PSScriptInvoker
             server = null;
             runspacePool.Close();
             EventLog.WriteEntry(EVENT_LOG_SOURCE, "The service has been stopped.", EventLogEntryType.Information);
+        }
+
+        private void initializeRabbitMQ(string baseUrl, string queueName, string username, string password)
+        {
+            try
+            {
+                if (!String.IsNullOrEmpty(baseUrl) && !String.IsNullOrEmpty(queueName))
+                {
+                    rabbitmqFactory = new ConnectionFactory() { Uri = new Uri(baseUrl), UserName = username, Password = password, DispatchConsumersAsync = true };
+                    rabbitmqFactory.AutomaticRecoveryEnabled = true;
+                    rabbitmqConnection = rabbitmqFactory.CreateConnection();
+                    rabbitmqChannel = rabbitmqConnection.CreateModel();
+                    rabbitmqConsumer = new AsyncEventingBasicConsumer(rabbitmqChannel);
+                    rabbitmqConsumer.Received += async (sender, args) =>
+                    {
+                        await Task.Yield(); // Force async execution.
+
+                        var body = args.Body;
+                        var message = System.Text.Encoding.UTF8.GetString(body);
+
+                        EventLog.WriteEntry(EVENT_LOG_SOURCE, string.Format("Received RabbitMQ message (deliveryTag: {0}):\n{1}", args.DeliveryTag, message), EventLogEntryType.Information);
+
+                        handleMessage(message);
+
+                        lock (rabbitmqChannel)
+                        {
+                            rabbitmqChannel.BasicAck(deliveryTag: args.DeliveryTag, multiple: false);
+                        }
+                    };
+
+                    rabbitmqChannel.BasicConsume(queue: queueName,
+                                 autoAck: false,
+                                 consumer: rabbitmqConsumer);
+
+                    EventLog.WriteEntry(EVENT_LOG_SOURCE, "Message consumer successfully started. Now waiting for requests in queue " + queueName + "...", EventLogEntryType.Information);
+                }
+                else
+                {
+                    string msg = string.Format("Skip RabbitMQ initialization, some config values are missing. baseUrl: {0}, queueName: {1}", baseUrl, queueName);
+                    Console.WriteLine(msg);
+                    EventLog.WriteEntry(EVENT_LOG_SOURCE, msg, EventLogEntryType.Warning);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.ToString());
+                EventLog.WriteEntry(EVENT_LOG_SOURCE, "Unexpected exception while setting up RabbitMQ connection:\n" + ex.ToString(), EventLogEntryType.Error);
+            }
         }
 
         /// <summary>
@@ -264,6 +333,56 @@ namespace PSScriptInvoker
             }
         }
 
+        private void handleMessage(string message)
+        {
+            try
+            {
+                // Get parameters
+                Dictionary<String, String> parameters = new Dictionary<String, String>();
+
+                // Execute the appropriate script.
+                string scriptName = "";
+                string scriptPath = "";
+                string fullScriptPath = pathToScripts + scriptPath + scriptName + ".ps1";
+                Dictionary<String, String> scriptOutput = executePowershellScript(fullScriptPath, parameters);
+
+                // Get output variables
+                string exitCode = "";
+                string result = "";
+                scriptOutput.TryGetValue("exitCode", out exitCode);
+                scriptOutput.TryGetValue("result", out result);
+
+                string msg = string.Format("Executed script was: {0}. Exit code: {1}, output:\n{2}", fullScriptPath, exitCode, result);
+                Console.WriteLine(msg);
+                EventLog.WriteEntry(EVENT_LOG_SOURCE, msg, EventLogEntryType.Information);
+
+                if (exitCode == "0")
+                {
+                    if (string.IsNullOrEmpty(result))
+                    {
+                        writeMessage("");
+                        //writeResponse(context.Response, result, 204);
+                    }
+                    else
+                    {
+                        writeMessage("");
+                        //writeResponse(context.Response, result, 200);
+                    }
+                }
+                else
+                {
+                    writeMessage("");
+                    //writeResponse(context.Response, result, 500);
+                }
+            }
+            catch (Exception ex)
+            {
+                EventLog.WriteEntry(EVENT_LOG_SOURCE, "Unexpected exception while processing message:\n" + ex.ToString(), EventLogEntryType.Error);
+                writeMessage(ex.ToString());
+                //writeResponse(context.Response, ex.ToString(), 500);
+            }
+        }
+
         /**
          * See here http://stackoverflow.com/a/527644
          */
@@ -386,6 +505,11 @@ namespace PSScriptInvoker
             {
                 response.Close();
             }
+        }
+
+        private void writeMessage(string messageText)
+        {
+
         }
 
         private string readAppSetting(string key)

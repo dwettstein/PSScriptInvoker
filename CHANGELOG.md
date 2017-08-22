@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 ### Added
+- RabbitMQ message consumer for asynchronous script execution
 
 
 ## [1.0.0] - 2017-08-13
