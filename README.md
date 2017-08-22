@@ -5,9 +5,7 @@ This project installs a service containing a [HttpListener](https://msdn.microso
 
 # Installation
 
-For installing the service just download, extract and execute the installer from here:
-
-[PSScriptInvokerSetup.zip](./PSScriptInvokerSetup.zip?raw=true)
+For installing the service just download, extract and execute the installer from here: [Releases](https://github.com/dwettstein/PSScriptInvoker/releases)
 
 For installing the service with Visual Studio, have a look at the [section Advanced Installation](#advanced-installation)
 
