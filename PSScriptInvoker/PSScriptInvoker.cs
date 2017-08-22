@@ -131,8 +131,6 @@ namespace PSScriptInvoker
             isServerStopped = true;
             server.Stop();
             server = null;
-            //if (serverThread.IsAlive)
-            //    serverThread.Abort();
             runspacePool.Close();
             EventLog.WriteEntry(EVENT_LOG_SOURCE, "The service has been stopped.", EventLogEntryType.Information);
         }
@@ -228,19 +226,20 @@ namespace PSScriptInvoker
                         {
                             scriptPath += segments[i].Replace("/", "") + "\\";
                         }
-                        Dictionary<String, String> scriptOutput = executePowershellScript(scriptPath, scriptName, queryDict);
+                        string fullScriptPath = pathToScripts + scriptPath + scriptName + ".ps1";
+                        Dictionary<String, String> scriptOutput = executePowershellScript(fullScriptPath, queryDict);
 
                         // Get output variables
-                        string returnCode = "";
+                        string exitCode = "";
                         string result = "";
-                        scriptOutput.TryGetValue("returnCode", out returnCode);
+                        scriptOutput.TryGetValue("exitCode", out exitCode);
                         scriptOutput.TryGetValue("result", out result);
 
-                        string msg = string.Format("Executed script was: {0}. Return code: {1}, output:\n{2}", request.Url.ToString(), returnCode, result);
+                        string msg = string.Format("Executed script was: {0}. Exit code: {1}, output:\n{2}", fullScriptPath, exitCode, result);
                         Console.WriteLine(msg);
                         EventLog.WriteEntry(EVENT_LOG_SOURCE, msg, EventLogEntryType.Information);
 
-                        if (returnCode == "0")
+                        if (exitCode == "0")
                         {
                             if (string.IsNullOrEmpty(result))
                             {
@@ -268,9 +267,8 @@ namespace PSScriptInvoker
         /**
          * See here http://stackoverflow.com/a/527644
          */
-        private Dictionary<String, String> executePowershellScript(string scriptPath, string scriptName, Dictionary<String, String> inputs)
+        private Dictionary<String, String> executePowershellScript(string fullScriptPath, Dictionary<String, String> inputs)
         {
-            string fullScriptPath = pathToScripts + scriptPath + scriptName + ".ps1";
             foreach (string key in inputs.Keys)
             {
                 string value = "";
@@ -284,7 +282,6 @@ namespace PSScriptInvoker
 
             Dictionary<String, String> output = new Dictionary<String, String>();
             Collection<PSObject> results = new Collection<PSObject>();
-            IList errors = new ArrayList();
 
             try
             {
@@ -293,19 +290,15 @@ namespace PSScriptInvoker
                 ps.RunspacePool = runspacePool;
                 results = ps.Invoke();
 
-                if (results.Count > 0)
+                if (ps.HadErrors)
                 {
-                    output.Add("returnCode", "0");
+                    output.Add("exitCode", "1");
+                    results.Add(new PSObject((object)ps.Streams.Error));
                 }
                 else
                 {
-                    output.Add("returnCode", "1");
-                    if (errors.Count > 0)
-                    {
-                        results.Add(new PSObject((object)errors[0]));
-                    }
+                    output.Add("exitCode", "0");
                 }
-
             }
             catch (ActionPreferenceStopException ex)
             {
@@ -320,13 +313,13 @@ namespace PSScriptInvoker
                 }
                 EventLog.WriteEntry(EVENT_LOG_SOURCE, "Exception occurred in Powershell script '" + fullScriptPath + "':\n" + psEx.ToString(), EventLogEntryType.Error);
                 results.Add(new PSObject((object)psEx.Message));
-                output.Add("returnCode", "1");
+                output.Add("exitCode", "1");
             }
             catch (Exception ex)
             {
                 EventLog.WriteEntry(EVENT_LOG_SOURCE, "Unexpected exception while invoking Powershell script '" + fullScriptPath + "':\n" + ex.ToString(), EventLogEntryType.Error);
                 results.Add(new PSObject((object)ex.Message));
-                output.Add("returnCode", "1");
+                output.Add("exitCode", "1");
             }
 
             if (results.Count > 0)
@@ -401,7 +394,7 @@ namespace PSScriptInvoker
             try
             {
                 var appSettings = ConfigurationManager.AppSettings;
-                result = appSettings[key] ?? "Not Found";
+                result = appSettings[key] ?? null;
             }
             catch (Exception ex)
             {
