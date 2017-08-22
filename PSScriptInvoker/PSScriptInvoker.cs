@@ -43,7 +43,7 @@ namespace PSScriptInvoker
             catch (System.Security.SecurityException ex)
             {
                 string msg = string.Format("Could not initialise the EventLog! Please initialise it by running the following command in Powershell as an administrator: \nNew-EventLog -Source {0} -LogName {1}\nException: {2}", EVENT_LOG_SOURCE, EVENT_LOG, ex.ToString());
-                System.Console.WriteLine(msg);
+                Console.WriteLine(msg);
                 throw ex;
             }
 
@@ -154,7 +154,7 @@ namespace PSScriptInvoker
                     if (ex.ErrorCode == 5) // Access is denied
                     {
                         string msg = string.Format("You need to reserve the URI by running the following command as an administrator: \nnetsh http add urlacl url={0} user={1}\\{2} listen=yes", baseUrl, Environment.GetEnvironmentVariable("USERDOMAIN"), Environment.GetEnvironmentVariable("USERNAME"));
-                        //System.Console.WriteLine(msg);
+                        Console.WriteLine(msg);
                         EventLog.WriteEntry(EVENT_LOG_SOURCE, msg, EventLogEntryType.Warning);
                     }
                     throw ex;
@@ -172,7 +172,7 @@ namespace PSScriptInvoker
             }
             catch (Exception ex)
             {
-                //System.Console.WriteLine(ex.ToString());
+                Console.WriteLine(ex.ToString());
                 EventLog.WriteEntry(EVENT_LOG_SOURCE, "Unexpected exception:\n" + ex.ToString(), EventLogEntryType.Error);
             }
         }
@@ -237,7 +237,7 @@ namespace PSScriptInvoker
                         scriptOutput.TryGetValue("result", out result);
 
                         string msg = string.Format("Executed script was: {0}. Return code: {1}, output:\n{2}", request.Url.ToString(), returnCode, result);
-                        System.Console.WriteLine(msg);
+                        Console.WriteLine(msg);
                         EventLog.WriteEntry(EVENT_LOG_SOURCE, msg, EventLogEntryType.Information);
 
                         if (returnCode == "0")
@@ -271,8 +271,15 @@ namespace PSScriptInvoker
         private Dictionary<String, String> executePowershellScript(string scriptPath, string scriptName, Dictionary<String, String> inputs)
         {
             string fullScriptPath = pathToScripts + scriptPath + scriptName + ".ps1";
+            foreach (string key in inputs.Keys)
+            {
+                string value = "";
+                inputs.TryGetValue(key, out value);
+                fullScriptPath += (" -" + key + " " + value);
+            }
+
             string msg = "Executing Powershell script '" + fullScriptPath + "'...";
-            System.Console.WriteLine(msg);
+            Console.WriteLine(msg);
             EventLog.WriteEntry(EVENT_LOG_SOURCE, msg, EventLogEntryType.Information);
 
             Dictionary<String, String> output = new Dictionary<String, String>();
@@ -282,16 +289,9 @@ namespace PSScriptInvoker
             try
             {
                 PowerShell ps = PowerShell.Create();
-                Command command = new Command(fullScriptPath);
-                foreach (string key in inputs.Keys)
-                {
-                    string value = "";
-                    inputs.TryGetValue(key, out value);
-                    command.Parameters.Add(key, value);
-                }
-                ps.Commands.AddCommand(command);
+                ps.AddScript(fullScriptPath);
                 ps.RunspacePool = runspacePool;
-                results = ps.Invoke(inputs);
+                results = ps.Invoke();
 
                 if (results.Count > 0)
                 {
@@ -307,7 +307,7 @@ namespace PSScriptInvoker
                 }
 
             }
-            catch (System.Management.Automation.ActionPreferenceStopException ex)
+            catch (ActionPreferenceStopException ex)
             {
                 Exception psEx = null;
                 if (ex.ErrorRecord != null && ex.ErrorRecord.Exception != null)
@@ -363,7 +363,7 @@ namespace PSScriptInvoker
                     else
                     {
                         string msg = string.Format("Unable to parse param: {0}", param);
-                        System.Console.WriteLine(msg);
+                        Console.WriteLine(msg);
                         EventLog.WriteEntry(EVENT_LOG_SOURCE, msg, EventLogEntryType.Warning);
                     }
                 }
@@ -386,7 +386,6 @@ namespace PSScriptInvoker
             }
             catch (Exception ex)
             {
-                //System.Console.WriteLine(ex.ToString());
                 EventLog.WriteEntry(EVENT_LOG_SOURCE, "Exception while writing response stream: " + ex.ToString(), EventLogEntryType.Error);
                 response.StatusCode = 500;
             }
