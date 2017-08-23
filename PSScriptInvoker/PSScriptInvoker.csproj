@@ -71,12 +71,14 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="HttpListenerModule.cs" />
     <Compile Include="ProjectInstaller.cs">
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="ProjectInstaller.Designer.cs">
       <DependentUpon>ProjectInstaller.cs</DependentUpon>
     </Compile>
+    <Compile Include="PSScriptExecutor.cs" />
     <Compile Include="PSScriptInvoker.cs">
       <SubType>Component</SubType>
     </Compile>
@@ -85,6 +87,7 @@
     </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="RabbitMqModule.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config">
