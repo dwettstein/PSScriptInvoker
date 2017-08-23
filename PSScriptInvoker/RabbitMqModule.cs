@@ -1,7 +1,9 @@
-﻿using RabbitMQ.Client;
+﻿using Newtonsoft.Json;
+using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System;
 using System.Collections.Generic;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace PSScriptInvoker
@@ -13,52 +15,61 @@ namespace PSScriptInvoker
         private string baseUrl;
         private string username;
         private string password;
-        private string requestQueueName;
-        private string responseQueueName;
+        private string requestQueue;
+        private string responseExchange;
+        private string responseRoutingKey;
 
-        private ConnectionFactory rabbitmqFactory;
-        private IConnection rabbitmqConnection;
-        private IModel rabbitmqChannel;
-        private AsyncEventingBasicConsumer rabbitmqConsumer;
+        private ConnectionFactory rabbitMqFactory;
+        private IConnection rabbitMqConnection;
+        private IModel rabbitMqChannel;
+        private AsyncEventingBasicConsumer rabbitMqConsumer;
 
-        public RabbitMqModule(PSScriptExecutor scriptExecutor, string baseUrl, string username, string password, string requestQueueName, string responseQueueName)
+        /**
+         * See also here: https://www.rabbitmq.com/dotnet-api-guide.html
+         */
+        public RabbitMqModule(PSScriptExecutor scriptExecutor, string baseUrl, string username, string password, string requestQueue, string responseExchange, string responseRoutingKey)
         {
             this.scriptExecutor = scriptExecutor;
             this.baseUrl = baseUrl;
             this.username = username ?? "";
             this.password = password ?? "";
-            this.requestQueueName = requestQueueName;
-            this.responseQueueName = responseQueueName;
+            this.requestQueue = requestQueue;
+            this.responseExchange = responseExchange;
+            this.responseRoutingKey = responseRoutingKey;
 
             try
             {
-                rabbitmqFactory = new ConnectionFactory() { Uri = new Uri(baseUrl), UserName = username, Password = password, DispatchConsumersAsync = true };
-                rabbitmqFactory.AutomaticRecoveryEnabled = true;
-                rabbitmqConnection = rabbitmqFactory.CreateConnection();
-                rabbitmqChannel = rabbitmqConnection.CreateModel();
-                rabbitmqConsumer = new AsyncEventingBasicConsumer(rabbitmqChannel);
-                rabbitmqConsumer.Received += async (sender, args) =>
+                rabbitMqFactory = new ConnectionFactory() { Uri = new Uri(baseUrl), UserName = username, Password = password, DispatchConsumersAsync = true };
+                rabbitMqFactory.AutomaticRecoveryEnabled = true;
+                rabbitMqConnection = rabbitMqFactory.CreateConnection();
+                rabbitMqChannel = rabbitMqConnection.CreateModel();
+                rabbitMqConsumer = new AsyncEventingBasicConsumer(rabbitMqChannel);
+                rabbitMqConsumer.Received += async (sender, args) =>
                 {
                     await Task.Yield(); // Force async execution.
 
-                    var body = args.Body;
-                    var message = System.Text.Encoding.UTF8.GetString(body);
+                    handleRequest(args);
 
-                    PSScriptInvoker.logInfo(string.Format("Received RabbitMQ message (deliveryTag: {0}):\n{1}", args.DeliveryTag, message));
-
-                    handleRequest(message);
-
-                    lock (rabbitmqChannel)
+                    // Acknowledge request if response was written successfully.
+                    lock (rabbitMqChannel)
                     {
-                        rabbitmqChannel.BasicAck(deliveryTag: args.DeliveryTag, multiple: false);
+                        try
+                        {
+                            rabbitMqChannel.BasicAck(deliveryTag: args.DeliveryTag, multiple: false);
+                        }
+                        catch (Exception ex)
+                        {
+                            PSScriptInvoker.logError("Unexpected exception while acknowledging request message:\n" + ex.ToString());
+                        }
+
                     }
                 };
 
-                rabbitmqChannel.BasicConsume(queue: requestQueueName,
+                rabbitMqChannel.BasicConsume(queue: this.requestQueue,
                                 autoAck: false,
-                                consumer: rabbitmqConsumer);
+                                consumer: rabbitMqConsumer);
 
-                PSScriptInvoker.logInfo("Message consumer successfully started. Now waiting for requests in queue " + requestQueueName + "...");
+                PSScriptInvoker.logInfo("Message consumer successfully started. Now waiting for requests in queue " + this.requestQueue + "...");
             }
             catch (Exception ex)
             {
@@ -67,68 +78,97 @@ namespace PSScriptInvoker
             }
         }
 
-        private void handleRequest(string message)
+        private void handleRequest(BasicDeliverEventArgs args)
         {
             try
             {
+                IDictionary<string, object>  requestHeaders = args.BasicProperties.Headers;
+                string executionId = "";
+                string endpoint = "";
+                string paramJsonString = "";
+                try
+                {
+                    requestHeaders.TryGetValue("executionId", out object executionIdBytes);
+                    requestHeaders.TryGetValue("endpoint", out object endpointBytes);
+                    executionId = Encoding.UTF8.GetString((byte[])executionIdBytes);
+                    endpoint = Encoding.UTF8.GetString((byte[])endpointBytes);
+                    paramJsonString = Encoding.UTF8.GetString(args.Body);
+                }
+                catch (Exception ex)
+                {
+                    PSScriptInvoker.logError("Unexpected exception while parsing request segments and query:\n" + ex.ToString());
+                    writeResponse(args, "ERROR: URL not valid: " + ex.ToString(), 400);
+                    return;
+                }
+
+                PSScriptInvoker.logInfo(string.Format("Received RabbitMQ message (deliveryTag: {0}, executionId: {1}, endpoint: {2}):\n{3}", args.DeliveryTag, executionId, endpoint, paramJsonString));
+
                 // Get parameters
-                Dictionary<String, String> parameters = new Dictionary<String, String>();
+                Dictionary<String, String> parameters = JsonConvert.DeserializeObject<Dictionary<String, String>>(paramJsonString);
 
                 // Execute the appropriate script.
-                string scriptName = "";
-                string scriptPath = "";
-                string fullScriptPath = scriptExecutor.getPathToScripts() + scriptPath + scriptName + ".ps1";
-                Dictionary<String, String> scriptOutput = scriptExecutor.executePowershellScript(fullScriptPath, parameters);
+                string[] segments = endpoint.Split('/');
+                Dictionary<String, String> scriptOutput = scriptExecutor.executePowershellScriptByHttpSegments(segments, parameters);
 
                 // Get output variables
-                string exitCode = "";
-                string result = "";
-                scriptOutput.TryGetValue("exitCode", out exitCode);
-                scriptOutput.TryGetValue("result", out result);
-
-                string msg = string.Format("Executed script was: {0}. Exit code: {1}, output:\n{2}", fullScriptPath, exitCode, result);
-                PSScriptInvoker.logInfo(msg);
+                scriptOutput.TryGetValue("exitCode", out string exitCode);
+                scriptOutput.TryGetValue("result", out string result);
 
                 if (exitCode == "0")
                 {
                     if (string.IsNullOrEmpty(result))
                     {
-                        writeResponse("");
-                        //writeResponse(context.Response, result, 204);
+                        writeResponse(args, result, 204);
                     }
                     else
                     {
-                        writeResponse("");
-                        //writeResponse(context.Response, result, 200);
+                        writeResponse(args, result, 200);
                     }
                 }
                 else
                 {
-                    writeResponse("");
-                    //writeResponse(context.Response, result, 500);
+                    writeResponse(args, result, 500);
                 }
             }
             catch (Exception ex)
             {
                 PSScriptInvoker.logError("Unexpected exception while processing message:\n" + ex.ToString());
-                writeResponse(ex.ToString());
-                //writeResponse(context.Response, ex.ToString(), 500);
+                writeResponse(args, ex.ToString(), 500);
             }
         }
 
-        private void writeResponse(string messageText)
+        private void writeResponse(BasicDeliverEventArgs args, string messageText, int exitCode)
         {
+            byte[] messageBytes = Encoding.UTF8.GetBytes(messageText);
 
+            IBasicProperties props = rabbitMqChannel.CreateBasicProperties();
+            props.ContentType = "application/json";
+            props.DeliveryMode = 2;
+
+            props.Headers = args.BasicProperties.Headers;
+            props.Headers.Add("exitCode", exitCode);
+
+            lock (rabbitMqChannel)
+            {
+                try
+                {
+                    rabbitMqChannel.BasicPublish(responseExchange, responseRoutingKey, props, messageBytes);
+                }
+                catch (Exception ex)
+                {
+                    PSScriptInvoker.logError("Unexpected exception while publishing response message:\n" + ex.ToString());
+                }
+            }
         }
 
         public bool isConnected()
         {
-            return (rabbitmqConnection != null && rabbitmqConnection.IsOpen && rabbitmqChannel != null);
+            return (rabbitMqConnection != null && rabbitMqConnection.IsOpen && rabbitMqChannel != null);
         }
 
         public void stopModule()
         {
-            rabbitmqConnection.Close();
+            rabbitMqConnection.Close();
         }
     }
 }

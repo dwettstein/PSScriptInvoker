@@ -69,8 +69,20 @@ namespace PSScriptInvoker
             runspacePool.Open();
         }
 
+        public Dictionary<String, String> executePowershellScriptByHttpSegments(string[] httpSegments, Dictionary<String, String> inputs)
+        {
+            string scriptName = httpSegments[httpSegments.Length - 1].Replace("/", "");
+            string scriptPath = "";
+            for (int i = 0; i < httpSegments.Length - 1; i++)
+            {
+                scriptPath += httpSegments[i].Replace("/", "") + "\\";
+            }
+            string fullScriptPath = pathToScripts + scriptPath + scriptName + ".ps1";
+            return executePowershellScript(fullScriptPath, inputs);
+        }
+
         /**
-         * See here http://stackoverflow.com/a/527644
+         * See also here: http://stackoverflow.com/a/527644
          */
         public Dictionary<String, String> executePowershellScript(string fullScriptPath, Dictionary<String, String> inputs)
         {
@@ -84,6 +96,8 @@ namespace PSScriptInvoker
             string msg = "Executing Powershell script '" + fullScriptPath + "'...";
             PSScriptInvoker.logInfo(msg);
 
+            string exitCode = "";
+            string result = "";
             Dictionary<String, String> output = new Dictionary<String, String>();
             Collection<PSObject> results = new Collection<PSObject>();
 
@@ -96,12 +110,12 @@ namespace PSScriptInvoker
 
                 if (ps.HadErrors)
                 {
-                    output.Add("exitCode", "1");
+                    exitCode = "1";
                     results.Add(new PSObject((object)ps.Streams.Error));
                 }
                 else
                 {
-                    output.Add("exitCode", "0");
+                    exitCode = "0";
                 }
             }
             catch (ActionPreferenceStopException ex)
@@ -117,34 +131,28 @@ namespace PSScriptInvoker
                 }
                 PSScriptInvoker.logError("Exception occurred in Powershell script '" + fullScriptPath + "':\n" + psEx.ToString());
                 results.Add(new PSObject((object)psEx.Message));
-                output.Add("exitCode", "1");
+                exitCode = "1";
             }
             catch (Exception ex)
             {
                 PSScriptInvoker.logError("Unexpected exception while invoking Powershell script '" + fullScriptPath + "':\n" + ex.ToString());
                 results.Add(new PSObject((object)ex.Message));
-                output.Add("exitCode", "1");
+                exitCode = "1";
             }
 
             if (results.Count > 0)
-            {
-                output.Add("result", results[0].ToString());
-            }
-            else
-            {
-                output.Add("result", "");
-            }
+                result = results[0].ToString();
+
+            PSScriptInvoker.logInfo(string.Format("Executed script was: {0}. Exit code: {1}, output:\n{2}", fullScriptPath, exitCode, result));
+
+            output.Add("exitCode", exitCode);
+            output.Add("result", result);
             return output;
         }
 
         public void closeRunspacePool()
         {
             runspacePool.Close();
-        }
-
-        public string getPathToScripts()
-        {
-            return pathToScripts;
         }
     }
 }

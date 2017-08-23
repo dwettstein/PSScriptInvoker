@@ -11,20 +11,6 @@ namespace PSScriptInvoker
         private const string EVENT_LOG_SOURCE = "PSScriptInvoker";
         private const string EVENT_LOG = "Application";
 
-        // App settings
-        private string httpBaseUrl;
-        private string httpAuthToken;
-        private string pathToScripts;
-        private string[] modulesToLoad;
-        private string psExecutionPolicy;
-
-        private string rabbitMqBaseUrl;
-        private string rabbitMqUsername;
-        private string rabbitMqPassword;
-        private string rabbitMqRequestQueueName;
-        private string rabbitMqResponseQueueName;
-
-        // Class variables
         private PSScriptExecutor scriptExecutor = null;
         private HttpListenerModule httpModule = null;
         private RabbitMqModule rabbitMqModule = null;
@@ -43,14 +29,6 @@ namespace PSScriptInvoker
                 string msg = string.Format("Could not initialise the EventLog! Please initialise it by running the following command in Powershell as an administrator: \nNew-EventLog -Source {0} -LogName {1}\nException: {2}", EVENT_LOG_SOURCE, EVENT_LOG, ex.ToString());
                 throw ex;
             }
-
-            // Read settings from app configuration.
-            httpBaseUrl = readAppSetting("baseUrl");
-            httpAuthToken = readAppSetting("authToken");
-            pathToScripts = readAppSetting("pathToScripts");
-            string modulesToLoadString = readAppSetting("modulesToLoad");
-            modulesToLoad = string.IsNullOrEmpty(modulesToLoadString) ? new string[0] : modulesToLoadString.Split(',');
-            psExecutionPolicy = readAppSetting("psExecutionPolicy");
         }
 
         public async Task StartPSScriptInvoker()
@@ -76,9 +54,15 @@ namespace PSScriptInvoker
 
         private Task OnStartTask(string[] args)
         {
+            string pathToScripts = readAppSetting("pathToScripts");
+            string modulesToLoadString = readAppSetting("modulesToLoad");
+            string[] modulesToLoad = string.IsNullOrEmpty(modulesToLoadString) ? new string[0] : modulesToLoadString.Split(',');
+            string psExecutionPolicy = readAppSetting("psExecutionPolicy");
             logInfo("Initializing service with required Powershell modules: " + String.Join(", ", modulesToLoad));
             scriptExecutor = new PSScriptExecutor(pathToScripts, modulesToLoad, psExecutionPolicy);
 
+            string httpBaseUrl = readAppSetting("baseUrl");
+            string httpAuthToken = readAppSetting("authToken");
             if (!String.IsNullOrEmpty(httpBaseUrl))
             {
                 logInfo("Initializing HTTP module on URI: " + httpBaseUrl);
@@ -94,15 +78,16 @@ namespace PSScriptInvoker
             string rabbitMqUsername = readAppSetting("rabbitMqUsername");
             string rabbitMqPassword = readAppSetting("rabbitMqPassword");
             string rabbitMqRequestQueueName = readAppSetting("rabbitMqRequestQueueName");
-            string rabbitMqResponseQueueName = readAppSetting("rabbitMqResponseQueueName");
-            if (!String.IsNullOrEmpty(rabbitMqBaseUrl) && !String.IsNullOrEmpty(rabbitMqRequestQueueName) && !String.IsNullOrEmpty(rabbitMqResponseQueueName))
+            string rabbitMqResponseExchange = readAppSetting("rabbitMqResponseExchange");
+            string rabbitMqResponseRoutingKey = readAppSetting("rabbitMqResponseRoutingKey");
+            if (!String.IsNullOrEmpty(rabbitMqBaseUrl) && !String.IsNullOrEmpty(rabbitMqRequestQueueName) && !String.IsNullOrEmpty(rabbitMqResponseExchange) && !String.IsNullOrEmpty(rabbitMqResponseRoutingKey))
             {
-                logInfo(string.Format("Initializing RabbitMQ module on URI: {0} with requestQueue: {1} and responseQueue: {2}", rabbitMqBaseUrl, rabbitMqRequestQueueName, rabbitMqResponseQueueName));
-                rabbitMqModule = new RabbitMqModule(scriptExecutor, rabbitMqBaseUrl, rabbitMqUsername, rabbitMqPassword, rabbitMqRequestQueueName, rabbitMqResponseQueueName);
+                logInfo(string.Format("Initializing RabbitMQ module on URI: {0} with requestQueue: {1}, responseExchange: {2} and responseRoutingKey: {3}", rabbitMqBaseUrl, rabbitMqRequestQueueName, rabbitMqResponseExchange, rabbitMqResponseRoutingKey));
+                rabbitMqModule = new RabbitMqModule(scriptExecutor, rabbitMqBaseUrl, rabbitMqUsername, rabbitMqPassword, rabbitMqRequestQueueName, rabbitMqResponseExchange, rabbitMqResponseRoutingKey);
             }
             else
             {
-                string msg = string.Format("Skip RabbitMQ initialization, some config values are missing. baseUrl: {0}, requestQueueName: {1}, responseQueueName: {2}", rabbitMqBaseUrl, rabbitMqRequestQueueName, rabbitMqResponseQueueName);
+                string msg = string.Format("Skip RabbitMQ initialization, some config values are missing. baseUrl: {0}, requestQueue: {1}, responseExchange: {2} and responseRoutingKey: {3}", rabbitMqBaseUrl, rabbitMqRequestQueueName, rabbitMqResponseExchange, rabbitMqResponseRoutingKey);
                 logWarning(msg);
             }
 

@@ -1,6 +1,6 @@
 # Description
 
-This project installs a service containing a [HttpListener](https://msdn.microsoft.com/en-us/library/system.net.httplistener.aspx). It can be used to invoke Powershell scripts over HTTP(S) requests.
+This project installs a service containing a [HttpListener](https://msdn.microsoft.com/en-us/library/system.net.httplistener.aspx) and/or a [RabbitMQ](https://www.rabbitmq.com/) consumer. It can be used to invoke Powershell scripts synchronously over HTTP(S) requests or asynchronously over RabbitMQ messages.
 
 
 # Installation
@@ -16,12 +16,19 @@ After the installation you need to configure the service according to your need 
 
 The following variables can be set in the service configuration file `PSScriptInvoker.exe.config` within the service installation folder (default `C:\Program Files\PSScriptInvoker\`):
 
-Key           | Example                           | Description
---------------|-----------------------------------|-------------
-baseUrl       | http://127.0.0.1:8888/            | Protocol, IP/hostname and port you want to use for the service (default `http://127.0.0.1:8888/`). For using HTTPS see [section HTTPS](#https) at the end of this documentation.
-authToken     | meowmeowmeow                      | The token used for the authorization. If empty, no _Authorization Header_ is needed.
-pathToScripts | C:\root\path\of\psscripts         | Root path of the folder where the scripts are (no `\` at the end).
-modulesToLoad | module.foo.bar.A,module.foo.bar.B | Comma-separated list (without whitespaces) of Powershell modules to load when starting the service.
+Key                        | Example                           | Description
+---------------------------|-----------------------------------|-------------
+baseUrl                    | http://127.0.0.1:8888/            | Protocol, IP/hostname and port you want to use for the service (default `http://127.0.0.1:8888/`). For using HTTPS see [section HTTPS](#https) at the end of this documentation.
+authToken                  | meowmeowmeow                      | The token used for the authentication. If empty, no _Authorization Header_ is sent.
+pathToScripts              | C:\root\path\of\psscripts         | Root path of the folder where the scripts are (no `\` at the end).
+modulesToLoad              | module.foo.bar.A,module.foo.bar.B | Comma-separated list (without whitespaces) of Powershell modules to load when starting the service.
+psExecutionPolicy          | RemoteSigned                      | The execution policy for executing the scripts (see here for more information: [about_Execution_Policies](https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_execution_policies)).
+rabbitMqBaseUrl            | amqp://127.0.0.1:5672/            | The AMQP url for connecting to RabbitMQ. Leave empty if RabbitMQ module is not needed.
+rabbitMqUsername           | guest                             | The username for connecting to RabbitMQ. Leave empty if there is no authentication needed.
+rabbitMqPassword           | guest                             | The password for connecting to RabbitMQ. Leave empty if there is no authentication needed.
+rabbitMqRequestQueueName   | scripts.powershell.requests       | The name of the queue where the requests are sent to.
+rabbitMqResponseExchange   | scripts.powershell                | The exchange for sending the script results. The response queue needs to be bound to this exchange.
+rabbitMqResponseRoutingKey | scripts.powershell.responses      | The routing key for the script results. Usually, this key is equal to the response queue.
 
 If you need to call the service from outside: Open Windows Firewall and go to Inbound Rules. Create a new rule of type Port and enter your chosen port from above (apply to TCP).
 
@@ -36,7 +43,7 @@ For convenience, you can also create a shortcut (Right-click => New => Shortcut)
 - Name: `Events PSScriptInvoker`
 
 
-# Example
+# HTTP Example
 
 With the following request, the service will look for the given script (just name, without `.ps1` ending) within the root path of the service (see [section Configuration](#configuration)).
 
@@ -76,6 +83,26 @@ Error Code | Meaning               | Response
 403        | Forbidden             | ERROR: Wrong auth token. Access denied!
 404        | Not Found             | ERROR: Script not found: {scriptName}
 500        | Internal Server Error | ERROR: {several messages when there was a problem with the service}
+
+
+# RabbitMQ Example
+
+For executing scripts asynchronously, you can use the RabbitMQ module of the service. The following convention is used to tell the service which script to run and how the parameters are sent.
+
+## Request message
+- Routing key: Can be anything, you have to do the exchange/queue bindings by yourself (e.g. `scripts.powershell.requests`)
+- Headers:
+    - `endpoint`: The name of the script in URI format (e.g. `/subfolder/scriptname`)
+- Body:
+    - All script parameters as a JSON string with depth 1 (e.g. `{"param1": "value1", "param2": "value2"}`)
+
+## Response message
+- Routing key: The routing key you have defined in the service configuration (see [section Configuration](#configuration))
+- Headers:
+    - All headers from the request message will be copied.
+    - `exitCode`: A HTTP status code.
+- Body:
+    - The script result.
 
 
 # Update

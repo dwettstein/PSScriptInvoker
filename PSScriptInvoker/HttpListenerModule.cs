@@ -88,19 +88,18 @@ namespace PSScriptInvoker
                     }
                     else
                     {
-                        string query;
-                        string[] segments;
+                        // Get the URI segments
+                        string[] segments = request.Url.Segments;
+                        // See here for more information about URI components: https://tools.ietf.org/html/rfc3986#section-3
+                        string query = request.Url.Query;
+
+                        // Get parameters
                         Dictionary<String, String> queryDict;
                         try
                         {
-                            // See here for more information about URI components: https://tools.ietf.org/html/rfc3986#section-3
-                            query = request.Url.Query;
                             // Parse the query string variables into a dictionary.
                             queryDict = parseUriQuery(query);
                             //NameValueCollection queryCollection = System.Web.HttpUtility.ParseQueryString(querystring);
-
-                            // Get the URI segments
-                            segments = request.Url.Segments;
                         }
                         catch (Exception ex)
                         {
@@ -110,23 +109,11 @@ namespace PSScriptInvoker
                         }
 
                         // Execute the appropriate script.
-                        string scriptName = segments[segments.Length - 1].Replace("/", "");
-                        string scriptPath = "";
-                        for (int i = 0; i < segments.Length - 1; i++)
-                        {
-                            scriptPath += segments[i].Replace("/", "") + "\\";
-                        }
-                        string fullScriptPath = scriptExecutor.getPathToScripts() + scriptPath + scriptName + ".ps1";
-                        Dictionary<String, String> scriptOutput = scriptExecutor.executePowershellScript(fullScriptPath, queryDict);
+                        Dictionary<String, String> scriptOutput = scriptExecutor.executePowershellScriptByHttpSegments(segments, queryDict);
 
                         // Get output variables
-                        string exitCode = "";
-                        string result = "";
-                        scriptOutput.TryGetValue("exitCode", out exitCode);
-                        scriptOutput.TryGetValue("result", out result);
-
-                        string msg = string.Format("Executed script was: {0}. Exit code: {1}, output:\n{2}", fullScriptPath, exitCode, result);
-                        PSScriptInvoker.logInfo(msg);
+                        scriptOutput.TryGetValue("exitCode", out string exitCode);
+                        scriptOutput.TryGetValue("result", out string result);
 
                         if (exitCode == "0")
                         {
