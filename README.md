@@ -100,6 +100,7 @@ For executing scripts asynchronously, you can use the RabbitMQ module of the ser
 - Routing key: Can be anything, you have to do the exchange/queue bindings by yourself (e.g. `scripts.powershell.requests`)
 - Headers:
     - `endpoint`: The name of the script in URI format (e.g. `/subfolder/scriptname`)
+    - `executionId`: Some id to match the response message to the request (will be copied into the response message headers).
 - Body:
     - All script parameters as a JSON string with depth 1 (e.g. `{"param1": "value1", "param2": "value2"}`)
 
