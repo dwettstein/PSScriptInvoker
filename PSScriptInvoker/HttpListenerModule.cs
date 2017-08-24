@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
@@ -91,25 +92,33 @@ namespace PSScriptInvoker
                         // Get the URI segments
                         string[] segments = request.Url.Segments;
                         // See here for more information about URI components: https://tools.ietf.org/html/rfc3986#section-3
-                        string query = request.Url.Query;
 
                         // Get parameters
-                        Dictionary<String, String> queryDict;
-                        try
+                        Dictionary<String, String> parameters;
+                        string body = "";
+                        if (request.HasEntityBody)
                         {
-                            // Parse the query string variables into a dictionary.
-                            queryDict = parseUriQuery(query);
-                            //NameValueCollection queryCollection = System.Web.HttpUtility.ParseQueryString(querystring);
+                            body = getRequestBody(request);
+                            parameters = JsonConvert.DeserializeObject<Dictionary<String, String>>(body);
                         }
-                        catch (Exception ex)
+                        else
                         {
-                            PSScriptInvoker.logError("Unexpected exception while parsing request segments and query:\n" + ex.ToString());
-                            writeResponse(context.Response, "ERROR: URL not valid: " + request.Url.ToString(), 400);
-                            return;
+                            string query = request.Url.Query;
+                            try
+                            {
+                                // Parse the query string variables into a dictionary.
+                                parameters = parseUriQuery(query);
+                            }
+                            catch (Exception ex)
+                            {
+                                PSScriptInvoker.logError("Unexpected exception while parsing request segments and query:\n" + ex.ToString());
+                                writeResponse(context.Response, "ERROR: URL not valid: " + request.Url.ToString(), 400);
+                                return;
+                            }
                         }
 
                         // Execute the appropriate script.
-                        Dictionary<String, String> scriptOutput = scriptExecutor.executePowershellScriptByHttpSegments(segments, queryDict);
+                        Dictionary<String, String> scriptOutput = scriptExecutor.executePowershellScriptByHttpSegments(segments, parameters);
 
                         // Get output variables
                         scriptOutput.TryGetValue("exitCode", out string exitCode);
@@ -168,6 +177,21 @@ namespace PSScriptInvoker
                 }
             }
             return queryDict;
+        }
+
+        private string getRequestBody(HttpListenerRequest request)
+        {
+            string body = "";
+            try
+            {
+                StreamReader stream = new StreamReader(request.InputStream);
+                body = stream.ReadToEnd();
+            }
+            catch (Exception ex)
+            {
+                PSScriptInvoker.logError("Exception while reading body input stream: " + ex.ToString());
+            }
+            return body;
         }
 
         private void writeResponse(HttpListenerResponse response, string responseText, int statusCode)

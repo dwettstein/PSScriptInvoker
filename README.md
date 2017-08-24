@@ -59,6 +59,13 @@ curl "http://localhost:8888/subfolders/.../scriptname?param1=value1&param2=value
 
 > Don't forget to URI encode your parameters.
 
+As an alternative, you can also use HTTP POST together with a request body to execute a script. However, be aware that the parameters must be sent as a JSON with depth 1:
+
+```bash
+curl "http://localhost:8888/subfolders/.../scriptname" -d '{"param1": "value1", "param2": "value2"}'
+```
+
+
 ## Authorization
 
 If the setting `authToken` is not empty in the service configuration (see [section Configuration](#configuration)), then you need to set the _Authorization Header_ and send it together with every request as follows:

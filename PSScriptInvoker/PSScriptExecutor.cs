@@ -69,7 +69,7 @@ namespace PSScriptInvoker
             runspacePool.Open();
         }
 
-        public Dictionary<String, String> executePowershellScriptByHttpSegments(string[] httpSegments, Dictionary<String, String> inputs)
+        public Dictionary<String, String> executePowershellScriptByHttpSegments(string[] httpSegments, Dictionary<String, String> parameters)
         {
             string scriptName = httpSegments[httpSegments.Length - 1].Replace("/", "");
             string scriptPath = "";
@@ -78,18 +78,18 @@ namespace PSScriptInvoker
                 scriptPath += httpSegments[i].Replace("/", "") + "\\";
             }
             string fullScriptPath = pathToScripts + scriptPath + scriptName + ".ps1";
-            return executePowershellScript(fullScriptPath, inputs);
+            return executePowershellScript(fullScriptPath, parameters);
         }
 
         /**
          * See also here: http://stackoverflow.com/a/527644
          */
-        public Dictionary<String, String> executePowershellScript(string fullScriptPath, Dictionary<String, String> inputs)
+        public Dictionary<String, String> executePowershellScript(string fullScriptPath, Dictionary<String, String> parameters)
         {
-            foreach (string key in inputs.Keys)
+            foreach (string key in parameters.Keys)
             {
                 string value = "";
-                inputs.TryGetValue(key, out value);
+                parameters.TryGetValue(key, out value);
                 fullScriptPath += (" -" + key + " " + value);
             }
 

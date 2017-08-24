@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ## [v1.1.0] - 2017-08-24
 ### Added
 - RabbitMQ message consumer for asynchronous script execution
+- Add possibility to send parameters as a JSON in the request body
 
 ### Changed
 - Refactor code: extract modules into separate classes
