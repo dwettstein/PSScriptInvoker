@@ -146,7 +146,7 @@ namespace PSScriptInvoker
             props.DeliveryMode = 2;
 
             props.Headers = args.BasicProperties.Headers;
-            props.Headers.Add("StatusCode", statusCode);
+            props.Headers.Add("statusCode", statusCode);
 
             lock (rabbitMqChannel)
             {
