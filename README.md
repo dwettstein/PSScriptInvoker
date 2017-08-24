@@ -107,7 +107,7 @@ For executing scripts asynchronously, you can use the RabbitMQ module of the ser
 - Routing key: The routing key you have defined in the service configuration (see [section Configuration](#configuration))
 - Headers:
     - All headers from the request message will be copied.
-    - `exitCode`: A HTTP status code.
+    - `StatusCode`: A HTTP status code.
 - Body:
     - The script result.
 

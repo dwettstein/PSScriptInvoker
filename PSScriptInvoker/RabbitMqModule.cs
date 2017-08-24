@@ -137,7 +137,7 @@ namespace PSScriptInvoker
             }
         }
 
-        private void writeResponse(BasicDeliverEventArgs args, string messageText, int exitCode)
+        private void writeResponse(BasicDeliverEventArgs args, string messageText, int statusCode)
         {
             byte[] messageBytes = Encoding.UTF8.GetBytes(messageText);
 
@@ -146,7 +146,7 @@ namespace PSScriptInvoker
             props.DeliveryMode = 2;
 
             props.Headers = args.BasicProperties.Headers;
-            props.Headers.Add("exitCode", exitCode);
+            props.Headers.Add("StatusCode", statusCode);
 
             lock (rabbitMqChannel)
             {
