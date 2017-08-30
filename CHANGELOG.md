@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ## [Unreleased]
 
 
+## [v1.1.1] - 2017-08-30
+### Changed
+- RabbitMQ response content type to text/plain
+- Add double quotes to param values (needed for spaces etc.)
+
+
 ## [v1.1.0] - 2017-08-24
 ### Added
 - RabbitMQ message consumer for asynchronous script execution
@@ -21,6 +27,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - First release version
 
 
-[Unreleased]: https://github.com/dwettstein/PSScriptInvoker/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/dwettstein/PSScriptInvoker/compare/v1.1.1...HEAD
+[v1.1.1]: https://github.com/dwettstein/PSScriptInvoker/compare/v1.1.0...v1.1.1
 [v1.1.0]: https://github.com/dwettstein/PSScriptInvoker/compare/v1.0.0...v1.1.0
 [v1.0.0]: https://github.com/dwettstein/PSScriptInvoker/tree/v1.0.0
