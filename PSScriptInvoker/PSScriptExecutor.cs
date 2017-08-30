@@ -90,7 +90,7 @@ namespace PSScriptInvoker
             {
                 string value = "";
                 parameters.TryGetValue(key, out value);
-                fullScriptPath += (" -" + key + " " + value);
+                fullScriptPath += (" -" + key + " \"" + value + "\"");
             }
 
             string msg = "Executing Powershell script '" + fullScriptPath + "'...";
