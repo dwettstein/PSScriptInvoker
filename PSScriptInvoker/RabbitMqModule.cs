@@ -142,7 +142,7 @@ namespace PSScriptInvoker
             byte[] messageBytes = Encoding.UTF8.GetBytes(messageText);
 
             IBasicProperties props = rabbitMqChannel.CreateBasicProperties();
-            props.ContentType = "application/json";
+            props.ContentType = "text/plain";
             props.DeliveryMode = 2;
 
             props.Headers = args.BasicProperties.Headers;
