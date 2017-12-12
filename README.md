@@ -42,6 +42,24 @@ For convenience, you can also create a shortcut (Right-click => New => Shortcut)
 - Location: `%windir%\system32\eventvwr.msc /c:Application /f:"*[System[Provider[@Name='PSScriptInvoker']]]"`
 - Name: `Events PSScriptInvoker`
 
+To filter the logs of a specific script (e.g. `monitoring.ps1`), use the following _XPath_ filter in the _Event Viewer_:
+
+```xml
+<QueryList>
+  <Query Id="0" Path="Application">
+    <Select Path="Application">*[System[Provider[@Name='PSScriptInvoker']]]</Select>
+    <Suppress Path="Application">*[EventData[Data and (Data="Executing Powershell script 'C:\Scripts\monitoring.ps1'...")]]</Suppress>
+    <Suppress Path="Application">*[EventData[Data and (Data='Executed script was: C:\Scripts\monitoring.ps1. Exit code: 0, output:&#xA;{"status":"OK"}')]]</Suppress>
+  </Query>
+</QueryList>
+```
+
+Another possibility is using PowerShell:
+
+```powershell
+Get-EventLog -LogName "Application" -Source "PSScriptInvoker" | Where-Object {$_.Message -notlike "*monitoring*"} | Out-GridView
+```
+
 
 # HTTP Example
 

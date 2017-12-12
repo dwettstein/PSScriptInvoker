@@ -1,4 +1,4 @@
-﻿using Microsoft.PowerShell;
+using Microsoft.PowerShell;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -14,7 +14,7 @@ namespace PSScriptInvoker
         private string psExecutionPolicy;
 
         private RunspacePool runspacePool;
-        private int MIN_RUNSPACES = 4;
+        private const int MIN_RUNSPACES = 4;
 
         public PSScriptExecutor(string pathToScripts, string[] modulesToLoad, string psExecutionPolicy)
         {
@@ -63,9 +63,13 @@ namespace PSScriptInvoker
 
             // This loads the InitialStateSession for all instances
             // Note you can set the minimum and maximum number of runspaces as well
+            // Note that without setting the minimum and maximum number of runspaces, it will use 1 as default for both:
+            // https://docs.microsoft.com/en-us/dotnet/api/system.management.automation.runspaces.runspacefactory.createrunspacepool?view=powershellsdk-1.1.0
             // See here: https://stackoverflow.com/a/24358855
             runspacePool = RunspaceFactory.CreateRunspacePool(initialSession);
             runspacePool.SetMinRunspaces(MIN_RUNSPACES);
+            runspacePool.SetMaxRunspaces(int.MaxValue);
+            runspacePool.ThreadOptions = PSThreadOptions.UseNewThread;
             runspacePool.Open();
         }
 
@@ -153,6 +157,7 @@ namespace PSScriptInvoker
         public void closeRunspacePool()
         {
             runspacePool.Close();
+            runspacePool.Dispose();
         }
     }
 }
