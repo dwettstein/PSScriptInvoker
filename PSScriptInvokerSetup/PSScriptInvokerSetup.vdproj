@@ -459,7 +459,7 @@
         "RemovePreviousVersions" = "11:TRUE"
         "DetectNewerInstalledVersion" = "11:TRUE"
         "InstallAllUsers" = "11:TRUE"
-        "ProductVersion" = "8:1.1.1"
+        "ProductVersion" = "8:1.1.2"
         "Manufacturer" = "8:David Wettstein"
         "ARPHELPTELEPHONE" = "8:"
         "ARPHELPLINK" = "8:"

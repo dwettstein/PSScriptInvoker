@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ## [Unreleased]
 
 
+## [v1.1.2] - 2017-12-12
+### Changed
+- Refactor PSScriptExecutor methods
+
+### Fixed
+- Fix issue with default max runspaces (only 1)
+
+
 ## [v1.1.1] - 2017-08-30
 ### Changed
 - RabbitMQ response content type to text/plain
@@ -27,7 +35,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - First release version
 
 
-[Unreleased]: https://github.com/dwettstein/PSScriptInvoker/compare/v1.1.1...HEAD
+[Unreleased]: https://github.com/dwettstein/PSScriptInvoker/compare/v1.1.2...HEAD
+[v1.1.2]: https://github.com/dwettstein/PSScriptInvoker/compare/v1.1.1...v1.1.2
 [v1.1.1]: https://github.com/dwettstein/PSScriptInvoker/compare/v1.1.0...v1.1.1
 [v1.1.0]: https://github.com/dwettstein/PSScriptInvoker/compare/v1.0.0...v1.1.0
 [v1.0.0]: https://github.com/dwettstein/PSScriptInvoker/tree/v1.0.0
