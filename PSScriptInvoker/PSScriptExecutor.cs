@@ -73,7 +73,13 @@ namespace PSScriptInvoker
             runspacePool.Open();
         }
 
-        public Dictionary<String, String> executePowershellScriptByHttpSegments(string[] httpSegments, Dictionary<String, String> parameters)
+        public void closeRunspacePool()
+        {
+            runspacePool.Close();
+            runspacePool.Dispose();
+        }
+
+        public string getScriptPath(string[] httpSegments)
         {
             string scriptName = httpSegments[httpSegments.Length - 1].Replace("/", "");
             string scriptPath = "";
@@ -81,23 +87,34 @@ namespace PSScriptInvoker
             {
                 scriptPath += httpSegments[i].Replace("/", "") + "\\";
             }
-            string fullScriptPath = pathToScripts + scriptPath + scriptName + ".ps1";
-            return executePowershellScript(fullScriptPath, parameters);
+            return (pathToScripts + scriptPath + scriptName + ".ps1");
+        }
+
+        public string appendParameters(string scriptPath, Dictionary<String, String> parameters)
+        {
+            string script = scriptPath;
+            foreach (string key in parameters.Keys)
+            {
+                string value = "";
+                parameters.TryGetValue(key, out value);
+                script += (" -" + key + " \"" + value + "\"");
+            }
+            return script;
+        }
+
+        public Dictionary<String, String> executePSScriptByHttpSegments(string[] httpSegments, Dictionary<String, String> parameters)
+        {
+            string script = getScriptPath(httpSegments);
+            script = appendParameters(script, parameters);
+            return executePSScript(script);
         }
 
         /**
          * See also here: http://stackoverflow.com/a/527644
          */
-        public Dictionary<String, String> executePowershellScript(string fullScriptPath, Dictionary<String, String> parameters)
+        public Dictionary<String, String> executePSScript(string script)
         {
-            foreach (string key in parameters.Keys)
-            {
-                string value = "";
-                parameters.TryGetValue(key, out value);
-                fullScriptPath += (" -" + key + " \"" + value + "\"");
-            }
-
-            string msg = "Executing Powershell script '" + fullScriptPath + "'...";
+            string msg = "Executing Powershell script '" + script + "'...";
             PSScriptInvoker.logInfo(msg);
 
             string exitCode = "";
@@ -108,7 +125,7 @@ namespace PSScriptInvoker
             try
             {
                 PowerShell ps = PowerShell.Create();
-                ps.AddScript(fullScriptPath);
+                ps.AddScript(script);
                 ps.RunspacePool = runspacePool;
                 results = ps.Invoke();
 
@@ -133,13 +150,13 @@ namespace PSScriptInvoker
                 {
                     psEx = ex;
                 }
-                PSScriptInvoker.logError("Exception occurred in Powershell script '" + fullScriptPath + "':\n" + psEx.ToString());
+                PSScriptInvoker.logError("Exception occurred in Powershell script '" + script + "':\n" + psEx.ToString());
                 results.Add(new PSObject((object)psEx.Message));
                 exitCode = "1";
             }
             catch (Exception ex)
             {
-                PSScriptInvoker.logError("Unexpected exception while invoking Powershell script '" + fullScriptPath + "':\n" + ex.ToString());
+                PSScriptInvoker.logError("Unexpected exception while invoking Powershell script '" + script + "':\n" + ex.ToString());
                 results.Add(new PSObject((object)ex.Message));
                 exitCode = "1";
             }
@@ -147,17 +164,11 @@ namespace PSScriptInvoker
             if (results.Count > 0)
                 result = results[0].ToString();
 
-            PSScriptInvoker.logInfo(string.Format("Executed script was: {0}. Exit code: {1}, output:\n{2}", fullScriptPath, exitCode, result));
+            PSScriptInvoker.logInfo(string.Format("Executed script was: {0}. Exit code: {1}, output:\n{2}", script, exitCode, result));
 
             output.Add("exitCode", exitCode);
             output.Add("result", result);
             return output;
-        }
-
-        public void closeRunspacePool()
-        {
-            runspacePool.Close();
-            runspacePool.Dispose();
         }
     }
 }

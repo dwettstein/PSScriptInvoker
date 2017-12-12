@@ -108,7 +108,7 @@ namespace PSScriptInvoker
 
                 // Execute the appropriate script.
                 string[] segments = endpoint.Split('/');
-                Dictionary<String, String> scriptOutput = scriptExecutor.executePowershellScriptByHttpSegments(segments, parameters);
+                Dictionary<String, String> scriptOutput = scriptExecutor.executePSScriptByHttpSegments(segments, parameters);
 
                 // Get output variables
                 scriptOutput.TryGetValue("exitCode", out string exitCode);
