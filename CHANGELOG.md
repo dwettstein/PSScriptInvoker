@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ## [Unreleased]
 
 
+## [v1.1.3] - 2018-01-09
+### Fixed
+- Fix bug with concurrent script execution when using message queue
+- Fix bug with empty message body or invalid JSON
+
+
 ## [v1.1.2] - 2017-12-12
 ### Changed
 - Refactor PSScriptExecutor methods
@@ -35,7 +41,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - First release version
 
 
-[Unreleased]: https://github.com/dwettstein/PSScriptInvoker/compare/v1.1.2...HEAD
+[Unreleased]: https://github.com/dwettstein/PSScriptInvoker/compare/v1.1.3...HEAD
+[v1.1.3]: https://github.com/dwettstein/PSScriptInvoker/compare/v1.1.2...v1.1.3
 [v1.1.2]: https://github.com/dwettstein/PSScriptInvoker/compare/v1.1.1...v1.1.2
 [v1.1.1]: https://github.com/dwettstein/PSScriptInvoker/compare/v1.1.0...v1.1.1
 [v1.1.0]: https://github.com/dwettstein/PSScriptInvoker/compare/v1.0.0...v1.1.0
