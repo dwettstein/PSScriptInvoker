@@ -4,6 +4,7 @@ using RabbitMQ.Client.Events;
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace PSScriptInvoker
@@ -48,21 +49,8 @@ namespace PSScriptInvoker
                 {
                     await Task.Yield(); // Force async execution.
 
-                    handleRequest(args);
-
-                    // Acknowledge request if response was written successfully.
-                    lock (rabbitMqChannel)
-                    {
-                        try
-                        {
-                            rabbitMqChannel.BasicAck(deliveryTag: args.DeliveryTag, multiple: false);
-                        }
-                        catch (Exception ex)
-                        {
-                            PSScriptInvoker.logError("Unexpected exception while acknowledging request message:\n" + ex.ToString());
-                        }
-
-                    }
+                    Thread handleRequestThread = new Thread(new ParameterizedThreadStart(handleRequest));
+                    handleRequestThread.Start(args);
                 };
 
                 rabbitMqChannel.BasicConsume(queue: this.requestQueue,
@@ -78,8 +66,10 @@ namespace PSScriptInvoker
             }
         }
 
-        private void handleRequest(BasicDeliverEventArgs args)
+        private void handleRequest(object input)
         {
+            BasicDeliverEventArgs args = (BasicDeliverEventArgs)input;
+
             try
             {
                 IDictionary<string, object>  requestHeaders = args.BasicProperties.Headers;
@@ -104,7 +94,9 @@ namespace PSScriptInvoker
                 PSScriptInvoker.logInfo(string.Format("Received RabbitMQ message (deliveryTag: {0}, executionId: {1}, endpoint: {2}):\n{3}", args.DeliveryTag, executionId, endpoint, paramJsonString));
 
                 // Get parameters
-                Dictionary<String, String> parameters = JsonConvert.DeserializeObject<Dictionary<String, String>>(paramJsonString);
+                Dictionary<String, String> parameters = new Dictionary<String, String>();
+                if (!String.IsNullOrEmpty(paramJsonString))
+                    parameters = JsonConvert.DeserializeObject<Dictionary<String, String>>(paramJsonString);
 
                 // Execute the appropriate script.
                 string[] segments = endpoint.Split('/');
@@ -130,10 +122,29 @@ namespace PSScriptInvoker
                     writeResponse(args, result, 500);
                 }
             }
+            catch (JsonReaderException jsonEx)
+            {
+                PSScriptInvoker.logError("Unable to read input JSON:\n" + jsonEx.ToString());
+                writeResponse(args, jsonEx.ToString(), 400);
+            }
             catch (Exception ex)
             {
                 PSScriptInvoker.logError("Unexpected exception while processing message:\n" + ex.ToString());
                 writeResponse(args, ex.ToString(), 500);
+            }
+
+            // Acknowledge request if response was written successfully.
+            lock (rabbitMqChannel)
+            {
+                try
+                {
+                    rabbitMqChannel.BasicAck(deliveryTag: args.DeliveryTag, multiple: false);
+                }
+                catch (Exception ex)
+                {
+                    PSScriptInvoker.logError("Unexpected exception while acknowledging request message:\n" + ex.ToString());
+                }
+
             }
         }
 
