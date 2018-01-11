@@ -1,6 +1,6 @@
 # Description
 
-This project installs a service containing a [HttpListener](https://msdn.microsoft.com/en-us/library/system.net.httplistener.aspx) and/or a [RabbitMQ](https://www.rabbitmq.com/) consumer. It can be used to invoke Powershell scripts synchronously over HTTP(S) requests or asynchronously over RabbitMQ messages.
+This project installs a service containing a [HttpListener](https://msdn.microsoft.com/en-us/library/system.net.httplistener.aspx) and/or a [RabbitMQ](https://www.rabbitmq.com/) consumer. It can be used to invoke PowerShell scripts synchronously over HTTP(S) requests or asynchronously over RabbitMQ messages.
 
 
 # Installation
@@ -21,8 +21,9 @@ Key                        | Example                           | Description
 baseUrl                    | http://127.0.0.1:8888/            | Protocol, IP/hostname and port you want to use for the service (default `http://127.0.0.1:8888/`). For using HTTPS see [section HTTPS](#https) at the end of this documentation.
 authToken                  | meowmeowmeow                      | The token used for the authentication. If empty, no _Authorization Header_ is sent.
 pathToScripts              | C:\root\path\of\psscripts         | Root path of the folder where the scripts are (no `\` at the end).
-modulesToLoad              | module.foo.bar.A,module.foo.bar.B | Comma-separated list (without whitespaces) of Powershell modules to load when starting the service.
+modulesToLoad              | module.foo.bar.A,module.foo.bar.B | Comma-separated list (without whitespaces) of PowerShell modules to load when starting the service.
 psExecutionPolicy          | RemoteSigned                      | The execution policy for executing the scripts (see here for more information: [about_Execution_Policies](https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_execution_policies)).
+psOutputDelimiter          | `||`                              | A delimiter to separate multiple outputs from the PowerShell script
 rabbitMqBaseUrl            | amqp://127.0.0.1:5672/            | The AMQP url for connecting to RabbitMQ. Leave empty if RabbitMQ module is not needed.
 rabbitMqUsername           | guest                             | The username for connecting to RabbitMQ. Leave empty if there is no authentication needed.
 rabbitMqPassword           | guest                             | The password for connecting to RabbitMQ. Leave empty if there is no authentication needed.
@@ -48,7 +49,7 @@ To filter the logs of a specific script (e.g. `monitoring.ps1`), use the followi
 <QueryList>
   <Query Id="0" Path="Application">
     <Select Path="Application">*[System[Provider[@Name='PSScriptInvoker']]]</Select>
-    <Suppress Path="Application">*[EventData[Data and (Data="Executing Powershell script 'C:\Scripts\monitoring.ps1'...")]]</Suppress>
+    <Suppress Path="Application">*[EventData[Data and (Data="Executing PowerShell script 'C:\Scripts\monitoring.ps1'...")]]</Suppress>
     <Suppress Path="Application">*[EventData[Data and (Data='Executed script was: C:\Scripts\monitoring.ps1. Exit code: 0, output:&#xA;{"status":"OK"}')]]</Suppress>
   </Query>
 </QueryList>

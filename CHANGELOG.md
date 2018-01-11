@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ## [Unreleased]
 
 
+## [v1.2.0] - 2018-01-11
+### Added
+- Return all outputs of a script with delimiter from App.config
+
+### Fixed
+- Fix bug when script has multiple outputs
+
+
 ## [v1.1.3] - 2018-01-09
 ### Fixed
 - Fix bug with concurrent script execution when using message queue
@@ -41,7 +49,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - First release version
 
 
-[Unreleased]: https://github.com/dwettstein/PSScriptInvoker/compare/v1.1.3...HEAD
+[Unreleased]: https://github.com/dwettstein/PSScriptInvoker/compare/v1.2.0...HEAD
+[v1.2.0]: https://github.com/dwettstein/PSScriptInvoker/compare/v1.1.3...v1.2.0
 [v1.1.3]: https://github.com/dwettstein/PSScriptInvoker/compare/v1.1.2...v1.1.3
 [v1.1.2]: https://github.com/dwettstein/PSScriptInvoker/compare/v1.1.1...v1.1.2
 [v1.1.1]: https://github.com/dwettstein/PSScriptInvoker/compare/v1.1.0...v1.1.1
