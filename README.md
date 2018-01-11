@@ -16,20 +16,20 @@ After the installation you need to configure the service according to your need 
 
 The following variables can be set in the service configuration file `PSScriptInvoker.exe.config` within the service installation folder (default `C:\Program Files\PSScriptInvoker\`):
 
-Key                        | Example                           | Description
----------------------------|-----------------------------------|-------------
-baseUrl                    | http://127.0.0.1:8888/            | Protocol, IP/hostname and port you want to use for the service (default `http://127.0.0.1:8888/`). For using HTTPS see [section HTTPS](#https) at the end of this documentation.
-authToken                  | meowmeowmeow                      | The token used for the authentication. If empty, no _Authorization Header_ is sent.
-pathToScripts              | C:\root\path\of\psscripts         | Root path of the folder where the scripts are (no `\` at the end).
-modulesToLoad              | module.foo.bar.A,module.foo.bar.B | Comma-separated list (without whitespaces) of PowerShell modules to load when starting the service.
-psExecutionPolicy          | RemoteSigned                      | The execution policy for executing the scripts (see here for more information: [about_Execution_Policies](https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_execution_policies)).
-psOutputDelimiter          | `\|\|`                              | A delimiter to separate multiple outputs from the PowerShell script
-rabbitMqBaseUrl            | amqp://127.0.0.1:5672/            | The AMQP url for connecting to RabbitMQ. Leave empty if RabbitMQ module is not needed.
-rabbitMqUsername           | guest                             | The username for connecting to RabbitMQ. Leave empty if there is no authentication needed.
-rabbitMqPassword           | guest                             | The password for connecting to RabbitMQ. Leave empty if there is no authentication needed.
-rabbitMqRequestQueueName   | scripts.powershell.requests       | The name of the queue where the requests are sent to.
-rabbitMqResponseExchange   | scripts.powershell                | The exchange for sending the script results. The response queue needs to be bound to this exchange.
-rabbitMqResponseRoutingKey | scripts.powershell.responses      | The routing key for the script results. Usually, this key is equal to the response queue.
+Key                        | Example                             | Description
+---------------------------|-------------------------------------|-------------
+baseUrl                    | `http://127.0.0.1:8888/`            | Protocol, IP/hostname and port you want to use for the service (default `http://127.0.0.1:8888/`). For using HTTPS see [section HTTPS](#https) at the end of this documentation.
+authToken                  | `meowmeowmeow`                      | The token used for the authentication. If empty, no _Authorization Header_ is sent.
+pathToScripts              | `C:\root\path\of\psscripts`         | Root path of the folder where the scripts are (no `\` at the end).
+modulesToLoad              | `module.foo.bar.A,module.foo.bar.B` | Comma-separated list (without whitespaces) of PowerShell modules to load when starting the service.
+psExecutionPolicy          | `RemoteSigned`                      | The execution policy for executing the scripts (see here for more information: [about_Execution_Policies](https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_execution_policies)).
+psOutputDelimiter          | `@@@`                               | A delimiter to separate multiple outputs from the PowerShell script
+rabbitMqBaseUrl            | `amqp://127.0.0.1:5672/`            | The AMQP url for connecting to RabbitMQ. Leave empty if RabbitMQ module is not needed.
+rabbitMqUsername           | `guest`                             | The username for connecting to RabbitMQ. Leave empty if there is no authentication needed.
+rabbitMqPassword           | `guest`                             | The password for connecting to RabbitMQ. Leave empty if there is no authentication needed.
+rabbitMqRequestQueueName   | `scripts.powershell.requests`       | The name of the queue where the requests are sent to.
+rabbitMqResponseExchange   | `scripts.powershell`                | The exchange for sending the script results. The response queue needs to be bound to this exchange.
+rabbitMqResponseRoutingKey | `scripts.powershell.responses`      | The routing key for the script results. Usually, this key is equal to the response queue.
 
 If you need to call the service from outside: Open Windows Firewall and go to Inbound Rules. Create a new rule of type Port and enter your chosen port from above (apply to TCP).
 
