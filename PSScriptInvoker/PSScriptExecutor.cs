@@ -12,15 +12,17 @@ namespace PSScriptInvoker
         private string pathToScripts;
         private string[] modulesToLoad;
         private string psExecutionPolicy;
+        private string psOutputDelimiter;
 
         private RunspacePool runspacePool;
         private const int MIN_RUNSPACES = 4;
 
-        public PSScriptExecutor(string pathToScripts, string[] modulesToLoad, string psExecutionPolicy)
+        public PSScriptExecutor(string pathToScripts, string[] modulesToLoad, string psExecutionPolicy, string psOutputDelimiter)
         {
             this.pathToScripts = pathToScripts;
             this.modulesToLoad = modulesToLoad;
             this.psExecutionPolicy = psExecutionPolicy;
+            this.psOutputDelimiter = psOutputDelimiter;
 
             // Initialise Powershell Runspace and preload necessary modules.
             // See here: http://stackoverflow.com/a/17071164
@@ -161,9 +163,20 @@ namespace PSScriptInvoker
                 exitCode = "1";
             }
 
-            if (results.Count > 0)
-                result = results[0].ToString();
-
+            try
+            {
+                for (int i = 0; i < results.Count; i++)
+                {
+                    result += (results[i] != null ? results[i].ToString() : "null");
+                    if (i < results.Count - 1) // Avoid delimiter at the end.
+                        result += psOutputDelimiter;
+                }
+            }
+            catch (Exception ex)
+            {
+                PSScriptInvoker.logError("Failed to get result (" + results.Count + " items) of Powershell script '" + script + "':\n" + ex.ToString());
+            }
+            
             PSScriptInvoker.logInfo(string.Format("Executed script was: {0}. Exit code: {1}, output:\n{2}", script, exitCode, result));
 
             output.Add("exitCode", exitCode);

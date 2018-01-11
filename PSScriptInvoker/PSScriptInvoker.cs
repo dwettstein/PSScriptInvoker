@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Configuration;
 using System.Diagnostics;
 using System.ServiceProcess;
@@ -58,8 +58,9 @@ namespace PSScriptInvoker
             string modulesToLoadString = readAppSetting("modulesToLoad");
             string[] modulesToLoad = string.IsNullOrEmpty(modulesToLoadString) ? new string[0] : modulesToLoadString.Split(',');
             string psExecutionPolicy = readAppSetting("psExecutionPolicy");
+            string psOutputDelimiter = readAppSetting("psOutputDelimiter") ?? "";
             logInfo("Initializing service with required Powershell modules: " + String.Join(", ", modulesToLoad));
-            scriptExecutor = new PSScriptExecutor(pathToScripts, modulesToLoad, psExecutionPolicy);
+            scriptExecutor = new PSScriptExecutor(pathToScripts, modulesToLoad, psExecutionPolicy, psOutputDelimiter);
 
             string httpBaseUrl = readAppSetting("baseUrl");
             string httpAuthToken = readAppSetting("authToken");
