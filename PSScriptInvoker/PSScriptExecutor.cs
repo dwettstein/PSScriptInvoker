@@ -24,7 +24,7 @@ namespace PSScriptInvoker
             this.psExecutionPolicy = psExecutionPolicy;
             this.psOutputDelimiter = psOutputDelimiter;
 
-            // Initialise Powershell Runspace and preload necessary modules.
+            // Initialise PowerShell Runspace and preload necessary modules.
             // See here: http://stackoverflow.com/a/17071164
             // See here: http://nivot.org/blog/post/2010/05/03/PowerShell20DeveloperEssentials1InitializingARunspaceWithAModule
             InitialSessionState initialSession = InitialSessionState.CreateDefault2();
@@ -35,7 +35,7 @@ namespace PSScriptInvoker
 
             if (psExecutionPolicy != "None")
             {
-                PSScriptInvoker.logInfo("Setting custom Powershell Execution Policy: " + psExecutionPolicy);
+                PSScriptInvoker.logInfo("Setting custom PowerShell Execution Policy: " + psExecutionPolicy);
                 switch (psExecutionPolicy)
                 {
                     case "AllSigned":
@@ -57,7 +57,7 @@ namespace PSScriptInvoker
                         initialSession.ExecutionPolicy = ExecutionPolicy.Unrestricted;
                         break;
                     default:
-                        PSScriptInvoker.logWarning("Given custom Powershell Execution Policy is unknown: " + psExecutionPolicy + ". Only one of the following custom policies is allowed: AllSigned, Bypass, RemoteSigned, Restricted, Undefined, Unrestricted. Set to policy 'Default'.");
+                        PSScriptInvoker.logWarning("Given custom PowerShell Execution Policy is unknown: " + psExecutionPolicy + ". Only one of the following custom policies is allowed: AllSigned, Bypass, RemoteSigned, Restricted, Undefined, Unrestricted. Set to policy 'Default'.");
                         initialSession.ExecutionPolicy = ExecutionPolicy.Default;
                         break;
                 }
@@ -116,7 +116,7 @@ namespace PSScriptInvoker
          */
         public Dictionary<String, String> executePSScript(string script)
         {
-            string msg = "Executing Powershell script '" + script + "'...";
+            string msg = "Executing PowerShell script '" + script + "'...";
             PSScriptInvoker.logInfo(msg);
 
             string exitCode = "";
@@ -152,13 +152,13 @@ namespace PSScriptInvoker
                 {
                     psEx = ex;
                 }
-                PSScriptInvoker.logError("Exception occurred in Powershell script '" + script + "':\n" + psEx.ToString());
+                PSScriptInvoker.logError("Exception occurred in PowerShell script '" + script + "':\n" + psEx.ToString());
                 results.Add(new PSObject((object)psEx.Message));
                 exitCode = "1";
             }
             catch (Exception ex)
             {
-                PSScriptInvoker.logError("Unexpected exception while invoking Powershell script '" + script + "':\n" + ex.ToString());
+                PSScriptInvoker.logError("Unexpected exception while invoking PowerShell script '" + script + "':\n" + ex.ToString());
                 results.Add(new PSObject((object)ex.Message));
                 exitCode = "1";
             }
@@ -174,9 +174,9 @@ namespace PSScriptInvoker
             }
             catch (Exception ex)
             {
-                PSScriptInvoker.logError("Failed to get result (" + results.Count + " items) of Powershell script '" + script + "':\n" + ex.ToString());
+                PSScriptInvoker.logError("Failed to get result (" + results.Count + " items) of PowerShell script '" + script + "':\n" + ex.ToString());
             }
-            
+
             PSScriptInvoker.logInfo(string.Format("Executed script was: {0}. Exit code: {1}, output:\n{2}", script, exitCode, result));
 
             output.Add("exitCode", exitCode);

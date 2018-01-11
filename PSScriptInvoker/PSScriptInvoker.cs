@@ -26,7 +26,7 @@ namespace PSScriptInvoker
             }
             catch (System.Security.SecurityException ex)
             {
-                string msg = string.Format("Could not initialise the EventLog! Please initialise it by running the following command in Powershell as an administrator: \nNew-EventLog -Source {0} -LogName {1}\nException: {2}", EVENT_LOG_SOURCE, EVENT_LOG, ex.ToString());
+                string msg = string.Format("Could not initialise the EventLog! Please initialise it by running the following command in PowerShell as an administrator: \nNew-EventLog -Source {0} -LogName {1}\nException: {2}", EVENT_LOG_SOURCE, EVENT_LOG, ex.ToString());
                 throw ex;
             }
         }
@@ -59,7 +59,7 @@ namespace PSScriptInvoker
             string[] modulesToLoad = string.IsNullOrEmpty(modulesToLoadString) ? new string[0] : modulesToLoadString.Split(',');
             string psExecutionPolicy = readAppSetting("psExecutionPolicy");
             string psOutputDelimiter = readAppSetting("psOutputDelimiter") ?? "";
-            logInfo("Initializing service with required Powershell modules: " + String.Join(", ", modulesToLoad));
+            logInfo("Initializing service with required PowerShell modules: " + String.Join(", ", modulesToLoad));
             scriptExecutor = new PSScriptExecutor(pathToScripts, modulesToLoad, psExecutionPolicy, psOutputDelimiter);
 
             string httpBaseUrl = readAppSetting("baseUrl");
